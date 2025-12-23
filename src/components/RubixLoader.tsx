@@ -27,11 +27,11 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
     // Cube state
     const cubeSize = size * 0.6;
     const pieceSize = cubeSize / 3;
-    const gap = 3;
+    const gap = 0.5; // Minimal gap so pieces stay together as a cube
 
-    // Rotation angles
-    let rotX = -0.5;
-    let rotY = 0.8;
+    // Rotation angles for better cube view
+    let rotX = -0.6;
+    let rotY = 0.785; // 45 degrees
 
     // Active move state
     let currentMove: {
@@ -72,7 +72,7 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
     const startNewMove = () => {
       const axes: Array<'x' | 'y' | 'z'> = ['x', 'y', 'z'];
       const layers = [-1, 0, 1];
-      
+
       currentMove = {
         axis: axes[Math.floor(Math.random() * 3)],
         layer: layers[Math.floor(Math.random() * 3)],
@@ -100,7 +100,7 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
 
     // Simple 3D projection
     const project = (x: number, y: number, z: number) => {
-      const perspective = 600;
+      const perspective = 800; // Increased for less distortion
       const scale = perspective / (perspective + z);
       return {
         x: x * scale + size / 2,
@@ -117,7 +117,7 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
         ctx.lineTo(corners[i].x, corners[i].y);
       }
       ctx.closePath();
-      
+
       // Parse rgba and adjust alpha based on brightness
       const match = color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
       if (match) {
@@ -127,22 +127,22 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
         ctx.fillStyle = color;
       }
       ctx.fill();
-      
-      ctx.strokeStyle = `rgba(255, 255, 255, ${0.4 * brightness})`;
-      ctx.lineWidth = 1.5;
+
+      ctx.strokeStyle = `rgba(80, 80, 80, ${0.6 * brightness})`; // Darker borders for definition
+      ctx.lineWidth = 2;
       ctx.stroke();
     };
 
     const animate = () => {
       ctx.clearRect(0, 0, size, size);
-      
+
       time += 0.01;
       rotY += 0.005;
 
       // Update current move
       if (currentMove) {
         currentMove.angle += currentMove.speed;
-        
+
         if (currentMove.angle >= currentMove.targetAngle) {
           // Snap pieces to new positions
           pieces.forEach(piece => {
@@ -153,7 +153,7 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
             ) {
               // Apply the rotation to grid positions
               let gx = piece.gridX, gy = piece.gridY, gz = piece.gridZ;
-              
+
               if (currentMove!.axis === 'x') {
                 const r = rotateX(gy, gz, currentMove!.targetAngle);
                 piece.gridY = Math.round(r.y);
@@ -167,13 +167,13 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
                 piece.gridX = Math.round(r.x);
                 piece.gridY = Math.round(r.y);
               }
-              
+
               piece.x = piece.gridX;
               piece.y = piece.gridY;
               piece.z = piece.gridZ;
             }
           });
-          
+
           currentMove = null;
           setTimeout(startNewMove, 300);
         }
@@ -187,7 +187,7 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
 
         // Apply current move rotation
         if (currentMove) {
-          const affectedByMove = 
+          const affectedByMove =
             (currentMove.axis === 'x' && piece.gridX === currentMove.layer) ||
             (currentMove.axis === 'y' && piece.gridY === currentMove.layer) ||
             (currentMove.axis === 'z' && piece.gridZ === currentMove.layer);
@@ -239,18 +239,18 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
           { lx: -half, ly: half, lz: half },
         ];
 
-        const corners = localCorners.map(c => 
+        const corners = localCorners.map(c =>
           project(c.lx + x, c.ly + y, c.lz + z)
         );
 
-        // Face colors (subtle pinks)
+        // Face colors (subtle pinks with more opacity)
         const faceColors = [
-          'rgba(255, 182, 193, 0.6)', // light pink
-          'rgba(255, 192, 203, 0.6)', // pink
-          'rgba(255, 218, 224, 0.6)', // pale pink
-          'rgba(255, 200, 221, 0.6)', // light pink
-          'rgba(255, 210, 210, 0.6)', // pale pink
-          'rgba(255, 228, 225, 0.6)', // misty rose
+          'rgba(255, 182, 193, 0.85)', // light pink
+          'rgba(255, 192, 203, 0.85)', // pink
+          'rgba(255, 218, 224, 0.85)', // pale pink
+          'rgba(255, 200, 221, 0.85)', // light pink
+          'rgba(255, 210, 210, 0.85)', // pale pink
+          'rgba(255, 228, 225, 0.85)', // misty rose
         ];
 
         // Calculate face normals for proper shading
@@ -273,7 +273,7 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
         faces.forEach(face => {
           const faceCorners = face.indices.map(i => corners[i]);
           const normal = getNormal(faceCorners[0], faceCorners[1], faceCorners[2]);
-          
+
           // Only draw if facing camera
           if (normal > 0) {
             const avgZ = faceCorners.reduce((sum, c) => sum + c.z, 0) / 4;
