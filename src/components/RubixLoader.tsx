@@ -27,55 +27,62 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
     // Cube state
     const cubeSize = size * 0.6;
     const pieceSize = cubeSize / 3;
-    const gap = 4;
+    const gap = 3;
 
     // Rotation angles
     let rotX = -0.5;
     let rotY = 0.8;
 
-    // Animation state for solving effect
+    // Active move state
+    let currentMove: {
+      axis: 'x' | 'y' | 'z';
+      layer: number; // -1, 0, 1
+      angle: number;
+      targetAngle: number;
+      speed: number;
+    } | null = null;
+
+    // Piece positions (3x3x3 minus center)
     const pieces: Array<{
       x: number;
       y: number;
       z: number;
-      rotX: number;
-      rotY: number;
-      rotZ: number;
-      rotSpeed: number;
-      rotAxis: number;
+      gridX: number;
+      gridY: number;
+      gridZ: number;
     }> = [];
 
-    // Initialize 26 pieces (3x3x3 minus center)
     for (let x = 0; x < 3; x++) {
       for (let y = 0; y < 3; y++) {
         for (let z = 0; z < 3; z++) {
           if (x === 1 && y === 1 && z === 1) continue; // Skip center
           pieces.push({
-            x: (x - 1) * (pieceSize + gap),
-            y: (y - 1) * (pieceSize + gap),
-            z: (z - 1) * (pieceSize + gap),
-            rotX: 0,
-            rotY: 0,
-            rotZ: 0,
-            rotSpeed: 0.02 + Math.random() * 0.01,
-            rotAxis: Math.floor(Math.random() * 3), // 0=X, 1=Y, 2=Z
+            x: x - 1,
+            y: y - 1,
+            z: z - 1,
+            gridX: x - 1,
+            gridY: y - 1,
+            gridZ: z - 1,
           });
         }
       }
     }
 
-    // Simple 3D projection
-    const project = (x: number, y: number, z: number) => {
-      // Apply piece rotation first
-      const perspective = 600;
-      const scale = perspective / (perspective + z);
-      return {
-        x: x * scale + size / 2,
-        y: y * scale + size / 2,
-        scale,
+    // Start a new random move
+    const startNewMove = () => {
+      const axes: Array<'x' | 'y' | 'z'> = ['x', 'y', 'z'];
+      const layers = [-1, 0, 1];
+      
+      currentMove = {
+        axis: axes[Math.floor(Math.random() * 3)],
+        layer: layers[Math.floor(Math.random() * 3)],
+        angle: 0,
+        targetAngle: Math.PI / 2, // 90 degrees
+        speed: 0.08,
       };
     };
 
+    // 3D rotation helpers
     const rotateX = (y: number, z: number, angle: number) => ({
       y: y * Math.cos(angle) - z * Math.sin(angle),
       z: y * Math.sin(angle) + z * Math.cos(angle),
@@ -91,7 +98,19 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
       y: x * Math.sin(angle) + y * Math.cos(angle),
     });
 
-    const drawCubeFace = (corners: Array<{ x: number; y: number; scale: number }>, color: string) => {
+    // Simple 3D projection
+    const project = (x: number, y: number, z: number) => {
+      const perspective = 600;
+      const scale = perspective / (perspective + z);
+      return {
+        x: x * scale + size / 2,
+        y: y * scale + size / 2,
+        scale,
+        z,
+      };
+    };
+
+    const drawCubeFace = (corners: Array<{ x: number; y: number; scale: number }>, color: string, brightness: number) => {
       ctx.beginPath();
       ctx.moveTo(corners[0].x, corners[0].y);
       for (let i = 1; i < corners.length; i++) {
@@ -99,11 +118,18 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
       }
       ctx.closePath();
       
-      const avgScale = corners.reduce((sum, c) => sum + c.scale, 0) / corners.length;
-      ctx.fillStyle = color;
+      // Parse rgba and adjust alpha based on brightness
+      const match = color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+      if (match) {
+        const [, r, g, b, a] = match;
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${parseFloat(a) * brightness})`;
+      } else {
+        ctx.fillStyle = color;
+      }
       ctx.fill();
-      ctx.strokeStyle = `rgba(255, 255, 255, ${0.3 * avgScale})`;
-      ctx.lineWidth = 1;
+      
+      ctx.strokeStyle = `rgba(255, 255, 255, ${0.4 * brightness})`;
+      ctx.lineWidth = 1.5;
       ctx.stroke();
     };
 
@@ -113,54 +139,96 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
       time += 0.01;
       rotY += 0.005;
 
-      // Sort pieces by depth for proper rendering
-      const sortedPieces = pieces.map((piece, idx) => {
-        // Apply piece animation
-        if (piece.rotAxis === 0) piece.rotX += piece.rotSpeed;
-        else if (piece.rotAxis === 1) piece.rotY += piece.rotSpeed;
-        else piece.rotZ += piece.rotSpeed;
-
-        // Reset rotation periodically
-        if (piece.rotX > Math.PI * 2) piece.rotX = 0;
-        if (piece.rotY > Math.PI * 2) piece.rotY = 0;
-        if (piece.rotZ > Math.PI * 2) piece.rotZ = 0;
-
-        let x = piece.x, y = piece.y, z = piece.z;
+      // Update current move
+      if (currentMove) {
+        currentMove.angle += currentMove.speed;
         
-        // Apply piece rotation
-        if (piece.rotX !== 0) {
-          const r = rotateX(y, z, piece.rotX);
-          y = r.y;
-          z = r.z;
+        if (currentMove.angle >= currentMove.targetAngle) {
+          // Snap pieces to new positions
+          pieces.forEach(piece => {
+            if (
+              (currentMove!.axis === 'x' && piece.gridX === currentMove!.layer) ||
+              (currentMove!.axis === 'y' && piece.gridY === currentMove!.layer) ||
+              (currentMove!.axis === 'z' && piece.gridZ === currentMove!.layer)
+            ) {
+              // Apply the rotation to grid positions
+              let gx = piece.gridX, gy = piece.gridY, gz = piece.gridZ;
+              
+              if (currentMove!.axis === 'x') {
+                const r = rotateX(gy, gz, currentMove!.targetAngle);
+                piece.gridY = Math.round(r.y);
+                piece.gridZ = Math.round(r.z);
+              } else if (currentMove!.axis === 'y') {
+                const r = rotateY(gx, gz, currentMove!.targetAngle);
+                piece.gridX = Math.round(r.x);
+                piece.gridZ = Math.round(r.z);
+              } else {
+                const r = rotateZ(gx, gy, currentMove!.targetAngle);
+                piece.gridX = Math.round(r.x);
+                piece.gridY = Math.round(r.y);
+              }
+              
+              piece.x = piece.gridX;
+              piece.y = piece.gridY;
+              piece.z = piece.gridZ;
+            }
+          });
+          
+          currentMove = null;
+          setTimeout(startNewMove, 300);
         }
-        if (piece.rotY !== 0) {
-          const r = rotateY(x, z, piece.rotY);
-          x = r.x;
-          z = r.z;
-        }
-        if (piece.rotZ !== 0) {
-          const r = rotateZ(x, y, piece.rotZ);
-          x = r.x;
-          y = r.y;
+      }
+
+      // Calculate positions with current move applied
+      const positions = pieces.map(piece => {
+        let x = piece.x * (pieceSize + gap);
+        let y = piece.y * (pieceSize + gap);
+        let z = piece.z * (pieceSize + gap);
+
+        // Apply current move rotation
+        if (currentMove) {
+          const affectedByMove = 
+            (currentMove.axis === 'x' && piece.gridX === currentMove.layer) ||
+            (currentMove.axis === 'y' && piece.gridY === currentMove.layer) ||
+            (currentMove.axis === 'z' && piece.gridZ === currentMove.layer);
+
+          if (affectedByMove) {
+            if (currentMove.axis === 'x') {
+              const r = rotateX(y, z, currentMove.angle);
+              y = r.y;
+              z = r.z;
+            } else if (currentMove.axis === 'y') {
+              const r = rotateY(x, z, currentMove.angle);
+              x = r.x;
+              z = r.z;
+            } else {
+              const r = rotateZ(x, y, currentMove.angle);
+              x = r.x;
+              y = r.y;
+            }
+          }
         }
 
         // Apply global rotation
-        const r1 = rotateX(y, z, rotX);
+        let r1 = rotateX(y, z, rotX);
         y = r1.y;
         z = r1.z;
-        const r2 = rotateY(x, z, rotY);
+        let r2 = rotateY(x, z, rotY);
         x = r2.x;
         z = r2.z;
 
-        return { piece, x, y, z, idx };
-      }).sort((a, b) => a.z - b.z);
+        return { piece, x, y, z };
+      });
+
+      // Sort by depth
+      positions.sort((a, b) => a.z - b.z);
 
       // Draw each piece
-      sortedPieces.forEach(({ piece, x, y, z }) => {
+      positions.forEach(({ x, y, z }) => {
         const half = pieceSize / 2;
 
-        // Define 8 corners of the cube
-        const corners = [
+        // Define 8 corners
+        const localCorners = [
           { lx: -half, ly: -half, lz: -half },
           { lx: half, ly: -half, lz: -half },
           { lx: half, ly: half, lz: -half },
@@ -169,61 +237,57 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
           { lx: half, ly: -half, lz: half },
           { lx: half, ly: half, lz: half },
           { lx: -half, ly: half, lz: half },
-        ].map(c => {
-          let px = c.lx, py = c.ly, pz = c.lz;
-          
-          // Apply piece rotation
-          if (piece.rotX !== 0) {
-            const r = rotateX(py, pz, piece.rotX);
-            py = r.y;
-            pz = r.z;
-          }
-          if (piece.rotY !== 0) {
-            const r = rotateY(px, pz, piece.rotY);
-            px = r.x;
-            pz = r.z;
-          }
-          if (piece.rotZ !== 0) {
-            const r = rotateZ(px, py, piece.rotZ);
-            px = r.x;
-            py = r.y;
-          }
-
-          // Add piece position
-          px += x;
-          py += y;
-          pz += z;
-
-          return project(px, py, pz);
-        });
-
-        // Draw visible faces with pink tints
-        const colors = [
-          'rgba(255, 182, 193, 0.4)',
-          'rgba(255, 192, 203, 0.4)',
-          'rgba(255, 218, 224, 0.4)',
-          'rgba(255, 200, 221, 0.4)',
-          'rgba(255, 210, 210, 0.4)',
-          'rgba(255, 228, 225, 0.4)',
         ];
 
-        // Front face
-        drawCubeFace([corners[4], corners[5], corners[6], corners[7]], colors[0]);
-        // Back face
-        drawCubeFace([corners[0], corners[3], corners[2], corners[1]], colors[1]);
-        // Right face
-        drawCubeFace([corners[1], corners[2], corners[6], corners[5]], colors[2]);
-        // Left face
-        drawCubeFace([corners[0], corners[4], corners[7], corners[3]], colors[3]);
-        // Top face
-        drawCubeFace([corners[3], corners[7], corners[6], corners[2]], colors[4]);
-        // Bottom face
-        drawCubeFace([corners[0], corners[1], corners[5], corners[4]], colors[5]);
+        const corners = localCorners.map(c => 
+          project(c.lx + x, c.ly + y, c.lz + z)
+        );
+
+        // Face colors (subtle pinks)
+        const faceColors = [
+          'rgba(255, 182, 193, 0.6)', // light pink
+          'rgba(255, 192, 203, 0.6)', // pink
+          'rgba(255, 218, 224, 0.6)', // pale pink
+          'rgba(255, 200, 221, 0.6)', // light pink
+          'rgba(255, 210, 210, 0.6)', // pale pink
+          'rgba(255, 228, 225, 0.6)', // misty rose
+        ];
+
+        // Calculate face normals for proper shading
+        const getNormal = (c1: typeof corners[0], c2: typeof corners[0], c3: typeof corners[0]) => {
+          const dx1 = c2.x - c1.x, dy1 = c2.y - c1.y, dz1 = c2.z - c1.z;
+          const dx2 = c3.x - c1.x, dy2 = c3.y - c1.y, dz2 = c3.z - c1.z;
+          return dx1 * dy2 - dy1 * dx2; // Simple 2D cross product for z component
+        };
+
+        // Draw faces (only if facing camera)
+        const faces = [
+          { indices: [4, 5, 6, 7], color: faceColors[0] }, // front
+          { indices: [0, 3, 2, 1], color: faceColors[1] }, // back
+          { indices: [1, 2, 6, 5], color: faceColors[2] }, // right
+          { indices: [0, 4, 7, 3], color: faceColors[3] }, // left
+          { indices: [3, 7, 6, 2], color: faceColors[4] }, // top
+          { indices: [0, 1, 5, 4], color: faceColors[5] }, // bottom
+        ];
+
+        faces.forEach(face => {
+          const faceCorners = face.indices.map(i => corners[i]);
+          const normal = getNormal(faceCorners[0], faceCorners[1], faceCorners[2]);
+          
+          // Only draw if facing camera
+          if (normal > 0) {
+            const avgZ = faceCorners.reduce((sum, c) => sum + c.z, 0) / 4;
+            const brightness = Math.min(1, Math.max(0.4, 1 - avgZ / 400));
+            drawCubeFace(faceCorners, face.color, brightness);
+          }
+        });
       });
 
       animationFrame = requestAnimationFrame(animate);
     };
 
+    // Start first move after a short delay
+    setTimeout(startNewMove, 500);
     animate();
 
     return () => {
