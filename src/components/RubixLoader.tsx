@@ -43,7 +43,7 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
     const startRotation = () => {
       const axes: Array<'x' | 'y' | 'z'> = ['x', 'y', 'z'];
       const layers: Array<0 | 1 | 2> = [0, 1, 2];
-      
+
       activeRotation = {
         axis: axes[Math.floor(Math.random() * 3)],
         layerIndex: layers[Math.floor(Math.random() * 3)],
@@ -57,24 +57,23 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
       // Rotate around X
       let y1 = y * Math.cos(rx) - z * Math.sin(rx);
       let z1 = y * Math.sin(rx) + z * Math.cos(rx);
-      
+
       // Rotate around Y
       let x2 = x * Math.cos(ry) + z1 * Math.sin(ry);
       let z2 = -x * Math.sin(ry) + z1 * Math.cos(ry);
-      
+
       // Rotate around Z
       let x3 = x2 * Math.cos(rz) - y1 * Math.sin(rz);
       let y3 = x2 * Math.sin(rz) + y1 * Math.cos(rz);
-      
+
       return { x: x3, y: y3, z: z2 };
     };
 
     const project = (x: number, y: number, z: number) => {
-      const perspective = 600;
-      const scale = perspective / (perspective + z);
+      // Orthographic projection - no perspective distortion
       return {
-        x: x * scale + size / 2,
-        y: y * scale + size / 2,
+        x: x + size / 2,
+        y: y + size / 2,
         z: z,
       };
     };
@@ -86,7 +85,7 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
       ctx.lineTo(corners[2].x, corners[2].y);
       ctx.lineTo(corners[3].x, corners[3].y);
       ctx.closePath();
-      
+
       ctx.fillStyle = color.replace(/[\d.]+\)$/, `${alpha})`);
       ctx.fill();
       ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.4})`;
@@ -96,7 +95,7 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
 
     const animate = () => {
       ctx.clearRect(0, 0, size, size);
-      
+
       globalRotY += 0.005;
 
       // Update active rotation
@@ -144,10 +143,10 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
 
             // Apply layer rotation if this piece is part of the rotating layer
             let layerRotX = 0, layerRotY = 0, layerRotZ = 0;
-            
+
             if (activeRotation) {
               let isInLayer = false;
-              
+
               if (activeRotation.axis === 'x' && ix === activeRotation.layerIndex) {
                 isInLayer = true;
                 layerRotX = activeRotation.currentAngle;
@@ -170,7 +169,7 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
             }
 
             // Apply global rotation to all corners
-            const rotatedCorners = corners3d.map(c => 
+            const rotatedCorners = corners3d.map(c =>
               rotatePoint(c.x, c.y, c.z, globalRotX, globalRotY, 0)
             );
 
@@ -198,18 +197,18 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
 
             faceIndices.forEach((indices, faceIdx) => {
               const faceCorners = indices.map(i => projected[i]);
-              
+
               // Backface culling
               const v1x = faceCorners[1].x - faceCorners[0].x;
               const v1y = faceCorners[1].y - faceCorners[0].y;
               const v2x = faceCorners[2].x - faceCorners[0].x;
               const v2y = faceCorners[2].y - faceCorners[0].y;
               const cross = v1x * v2y - v1y * v2x;
-              
+
               if (cross > 0) {
                 const avgZ = faceCorners.reduce((sum, c) => sum + c.z, 0) / 4;
                 const alpha = Math.max(0.3, Math.min(1, 1 - avgZ / 500));
-                
+
                 faces.push({
                   corners: faceCorners,
                   color: faceColors[faceIdx],
