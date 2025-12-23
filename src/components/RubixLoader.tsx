@@ -187,12 +187,12 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
             ];
 
             const faceColors = [
-              'rgba(255, 182, 193, 0.5)',
-              'rgba(255, 192, 203, 0.5)',
-              'rgba(255, 218, 224, 0.5)',
-              'rgba(255, 200, 221, 0.5)',
-              'rgba(255, 210, 210, 0.5)',
-              'rgba(255, 228, 225, 0.5)',
+              'rgba(230, 230, 250, 0.5)', // lavender - light purple
+              'rgba(255, 240, 245, 0.5)', // lavender blush - very light pink
+              'rgba(245, 245, 245, 0.5)', // white smoke - light grey
+              'rgba(248, 228, 245, 0.5)', // light pink with purple tint
+              'rgba(240, 230, 255, 0.5)', // very light purple
+              'rgba(250, 250, 250, 0.5)', // almost white
             ];
 
             faceIndices.forEach((indices, faceIdx) => {
