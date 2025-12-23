@@ -22,16 +22,14 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
     ctx.scale(dpr, dpr);
 
     let animationFrame: number;
-    let time = 0;
 
     // Cube state
     const cubeSize = size * 0.6;
     const pieceSize = cubeSize / 3;
-    const gap = 1; // Small gap between pieces
 
-    // Rotation angles for better cube view
+    // Global rotation
     let rotX = -0.6;
-    let rotY = 0.785; // 45 degrees
+    let rotY = 0.785;
 
     // Active move state
     let currentMove: {
@@ -42,28 +40,14 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
       speed: number;
     } | null = null;
 
-    // Piece positions (3x3x3 minus center)
-    const pieces: Array<{
-      x: number;
-      y: number;
-      z: number;
-      gridX: number;
-      gridY: number;
-      gridZ: number;
-    }> = [];
-
+    // Track which pieces belong to which position (3x3x3 grid)
+    const grid: Array<Array<Array<number>>> = [];
     for (let x = 0; x < 3; x++) {
+      grid[x] = [];
       for (let y = 0; y < 3; y++) {
+        grid[x][y] = [];
         for (let z = 0; z < 3; z++) {
-          if (x === 1 && y === 1 && z === 1) continue; // Skip center
-          pieces.push({
-            x: x - 1,
-            y: y - 1,
-            z: z - 1,
-            gridX: x - 1,
-            gridY: y - 1,
-            gridZ: z - 1,
-          });
+          grid[x][y][z] = x * 9 + y * 3 + z;
         }
       }
     }
@@ -71,8 +55,8 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
     // Start a new random move
     const startNewMove = () => {
       const axes: Array<'x' | 'y' | 'z'> = ['x', 'y', 'z'];
-      const layers = [-1, 0, 1];
-
+      const layers = [0, 1, 2]; // Front, middle, back layer
+      
       currentMove = {
         axis: axes[Math.floor(Math.random() * 3)],
         layer: layers[Math.floor(Math.random() * 3)],
@@ -100,7 +84,7 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
 
     // Simple 3D projection
     const project = (x: number, y: number, z: number) => {
-      const perspective = 800; // Increased for less distortion
+      const perspective = 800;
       const scale = perspective / (perspective + z);
       return {
         x: x * scale + size / 2,
@@ -110,15 +94,14 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
       };
     };
 
-    const drawCubeFace = (corners: Array<{ x: number; y: number; scale: number }>, color: string, brightness: number) => {
+    const drawCubeFace = (corners: Array<{ x: number; y: number }>, color: string, brightness: number) => {
       ctx.beginPath();
       ctx.moveTo(corners[0].x, corners[0].y);
       for (let i = 1; i < corners.length; i++) {
         ctx.lineTo(corners[i].x, corners[i].y);
       }
       ctx.closePath();
-
-      // Parse rgba and adjust alpha based on brightness
+      
       const match = color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
       if (match) {
         const [, r, g, b, a] = match;
@@ -127,7 +110,7 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
         ctx.fillStyle = color;
       }
       ctx.fill();
-
+      
       ctx.strokeStyle = `rgba(255, 255, 255, ${0.3 * brightness})`;
       ctx.lineWidth = 1;
       ctx.stroke();
@@ -135,145 +118,168 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
 
     const animate = () => {
       ctx.clearRect(0, 0, size, size);
-
-      time += 0.01;
+      
       rotY += 0.005;
 
       // Update current move
       if (currentMove) {
         currentMove.angle += currentMove.speed;
-
+        
         if (currentMove.angle >= currentMove.targetAngle) {
-          // Snap pieces to new positions - ensure they stay on grid
-          pieces.forEach(piece => {
-            if (
-              (currentMove!.axis === 'x' && piece.gridX === currentMove!.layer) ||
-              (currentMove!.axis === 'y' && piece.gridY === currentMove!.layer) ||
-              (currentMove!.axis === 'z' && piece.gridZ === currentMove!.layer)
-            ) {
-              // Apply the rotation to grid positions
-              let gx = piece.gridX, gy = piece.gridY, gz = piece.gridZ;
-
-              if (currentMove!.axis === 'x') {
-                // Rotate around X axis
-                const cos = Math.cos(currentMove!.targetAngle);
-                const sin = Math.sin(currentMove!.targetAngle);
-                const newY = gy * cos - gz * sin;
-                const newZ = gy * sin + gz * cos;
-                piece.gridY = Math.round(newY);
-                piece.gridZ = Math.round(newZ);
-              } else if (currentMove!.axis === 'y') {
-                // Rotate around Y axis
-                const cos = Math.cos(currentMove!.targetAngle);
-                const sin = Math.sin(currentMove!.targetAngle);
-                const newX = gx * cos + gz * sin;
-                const newZ = -gx * sin + gz * cos;
-                piece.gridX = Math.round(newX);
-                piece.gridZ = Math.round(newZ);
-              } else {
-                // Rotate around Z axis
-                const cos = Math.cos(currentMove!.targetAngle);
-                const sin = Math.sin(currentMove!.targetAngle);
-                const newX = gx * cos - gy * sin;
-                const newY = gx * sin + gy * cos;
-                piece.gridX = Math.round(newX);
-                piece.gridY = Math.round(newY);
+          // Rotate the grid layer
+          const layer = currentMove.layer;
+          const newGrid: Array<Array<Array<number>>> = JSON.parse(JSON.stringify(grid));
+          
+          if (currentMove.axis === 'x') {
+            // Rotate YZ plane at x=layer
+            for (let y = 0; y < 3; y++) {
+              for (let z = 0; z < 3; z++) {
+                // 90 degree clockwise: (y,z) -> (z, 2-y)
+                newGrid[layer][2 - z][y] = grid[layer][y][z];
               }
-
-              // Ensure pieces stay exactly on grid
-              piece.x = piece.gridX;
-              piece.y = piece.gridY;
-              piece.z = piece.gridZ;
             }
-          });
-
+          } else if (currentMove.axis === 'y') {
+            // Rotate XZ plane at y=layer
+            for (let x = 0; x < 3; x++) {
+              for (let z = 0; z < 3; z++) {
+                // 90 degree clockwise: (x,z) -> (2-z, x)
+                newGrid[2 - z][layer][x] = grid[x][layer][z];
+              }
+            }
+          } else {
+            // Rotate XY plane at z=layer
+            for (let x = 0; x < 3; x++) {
+              for (let y = 0; y < 3; y++) {
+                // 90 degree clockwise: (x,y) -> (y, 2-x)
+                newGrid[y][2 - x][layer] = grid[x][y][layer];
+              }
+            }
+          }
+          
+          // Copy new grid
+          for (let x = 0; x < 3; x++) {
+            for (let y = 0; y < 3; y++) {
+              for (let z = 0; z < 3; z++) {
+                grid[x][y][z] = newGrid[x][y][z];
+              }
+            }
+          }
+          
           currentMove = null;
           setTimeout(startNewMove, 300);
         }
       }
 
-      // Calculate positions with current move applied
-      const positions = pieces.map(piece => {
-        let x = piece.x * (pieceSize + gap);
-        let y = piece.y * (pieceSize + gap);
-        let z = piece.z * (pieceSize + gap);
+      // Draw the entire cube as one solid object
+      // Calculate all piece positions
+      const pieces: Array<{
+        gridX: number;
+        gridY: number;
+        gridZ: number;
+        worldX: number;
+        worldY: number;
+        worldZ: number;
+        id: number;
+      }> = [];
 
-        // Apply current move rotation
-        if (currentMove) {
-          const affectedByMove =
-            (currentMove.axis === 'x' && piece.gridX === currentMove.layer) ||
-            (currentMove.axis === 'y' && piece.gridY === currentMove.layer) ||
-            (currentMove.axis === 'z' && piece.gridZ === currentMove.layer);
+      for (let gx = 0; gx < 3; gx++) {
+        for (let gy = 0; gy < 3; gy++) {
+          for (let gz = 0; gz < 3; gz++) {
+            if (gx === 1 && gy === 1 && gz === 1) continue; // Skip center
 
-          if (affectedByMove) {
-            if (currentMove.axis === 'x') {
-              const r = rotateX(y, z, currentMove.angle);
-              y = r.y;
-              z = r.z;
-            } else if (currentMove.axis === 'y') {
-              const r = rotateY(x, z, currentMove.angle);
-              x = r.x;
-              z = r.z;
-            } else {
-              const r = rotateZ(x, y, currentMove.angle);
-              x = r.x;
-              y = r.y;
+            // Base position in world space
+            let x = (gx - 1) * pieceSize;
+            let y = (gy - 1) * pieceSize;
+            let z = (gz - 1) * pieceSize;
+
+            // Apply current move rotation if this piece is affected
+            if (currentMove) {
+              const affectedByMove = 
+                (currentMove.axis === 'x' && gx === currentMove.layer) ||
+                (currentMove.axis === 'y' && gy === currentMove.layer) ||
+                (currentMove.axis === 'z' && gz === currentMove.layer);
+
+              if (affectedByMove) {
+                // Rotate position around the axis
+                if (currentMove.axis === 'x') {
+                  const r = rotateX(y, z, currentMove.angle);
+                  y = r.y;
+                  z = r.z;
+                } else if (currentMove.axis === 'y') {
+                  const r = rotateY(x, z, currentMove.angle);
+                  x = r.x;
+                  z = r.z;
+                } else {
+                  const r = rotateZ(x, y, currentMove.angle);
+                  x = r.x;
+                  y = r.y;
+                }
+              }
             }
+
+            // Apply global rotation
+            let r1 = rotateX(y, z, rotX);
+            y = r1.y;
+            z = r1.z;
+            let r2 = rotateY(x, z, rotY);
+            x = r2.x;
+            z = r2.z;
+
+            pieces.push({
+              gridX: gx,
+              gridY: gy,
+              gridZ: gz,
+              worldX: x,
+              worldY: y,
+              worldZ: z,
+              id: grid[gx][gy][gz],
+            });
           }
         }
-
-        // Apply global rotation
-        let r1 = rotateX(y, z, rotX);
-        y = r1.y;
-        z = r1.z;
-        let r2 = rotateY(x, z, rotY);
-        x = r2.x;
-        z = r2.z;
-
-        return { piece, x, y, z };
-      });
+      }
 
       // Sort by depth
-      positions.sort((a, b) => a.z - b.z);
+      pieces.sort((a, b) => a.worldZ - b.worldZ);
 
-      // Draw each piece
-      positions.forEach(({ x, y, z }) => {
+      // Face colors
+      const faceColors = [
+        'rgba(255, 182, 193, 0.5)',
+        'rgba(255, 192, 203, 0.5)',
+        'rgba(255, 218, 224, 0.5)',
+        'rgba(255, 200, 221, 0.5)',
+        'rgba(255, 210, 210, 0.5)',
+        'rgba(255, 228, 225, 0.5)',
+      ];
+
+      // Draw each piece as part of the whole cube
+      pieces.forEach((piece) => {
         const half = pieceSize / 2;
+        const { worldX: cx, worldY: cy, worldZ: cz } = piece;
 
-        // Define 8 corners
+        // Define the 8 corners relative to piece center
         const localCorners = [
-          { lx: -half, ly: -half, lz: -half },
-          { lx: half, ly: -half, lz: -half },
-          { lx: half, ly: half, lz: -half },
-          { lx: -half, ly: half, lz: -half },
-          { lx: -half, ly: -half, lz: half },
-          { lx: half, ly: -half, lz: half },
-          { lx: half, ly: half, lz: half },
-          { lx: -half, ly: half, lz: half },
+          { x: -half, y: -half, z: -half },
+          { x: half, y: -half, z: -half },
+          { x: half, y: half, z: -half },
+          { x: -half, y: half, z: -half },
+          { x: -half, y: -half, z: half },
+          { x: half, y: -half, z: half },
+          { x: half, y: half, z: half },
+          { x: -half, y: half, z: half },
         ];
 
-        const corners = localCorners.map(c =>
-          project(c.lx + x, c.ly + y, c.lz + z)
+        const corners = localCorners.map(c => 
+          project(c.x + cx, c.y + cy, c.z + cz)
         );
 
-        // Face colors (subtle pinks - transparent glass look)
-        const faceColors = [
-          'rgba(255, 182, 193, 0.5)', // light pink
-          'rgba(255, 192, 203, 0.5)', // pink
-          'rgba(255, 218, 224, 0.5)', // pale pink
-          'rgba(255, 200, 221, 0.5)', // light pink
-          'rgba(255, 210, 210, 0.5)', // pale pink
-          'rgba(255, 228, 225, 0.5)', // misty rose
-        ];
-
-        // Calculate face normals for proper shading
+        // Calculate normal for backface culling
         const getNormal = (c1: typeof corners[0], c2: typeof corners[0], c3: typeof corners[0]) => {
-          const dx1 = c2.x - c1.x, dy1 = c2.y - c1.y, dz1 = c2.z - c1.z;
-          const dx2 = c3.x - c1.x, dy2 = c3.y - c1.y, dz2 = c3.z - c1.z;
-          return dx1 * dy2 - dy1 * dx2; // Simple 2D cross product for z component
+          const dx1 = c2.x - c1.x, dy1 = c2.y - c1.y;
+          const dx2 = c3.x - c1.x, dy2 = c3.y - c1.y;
+          return dx1 * dy2 - dy1 * dx2;
         };
 
-        // Draw faces (only if facing camera)
+        // Draw visible faces
         const faces = [
           { indices: [4, 5, 6, 7], color: faceColors[0] }, // front
           { indices: [0, 3, 2, 1], color: faceColors[1] }, // back
@@ -286,11 +292,10 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
         faces.forEach(face => {
           const faceCorners = face.indices.map(i => corners[i]);
           const normal = getNormal(faceCorners[0], faceCorners[1], faceCorners[2]);
-
-          // Only draw if facing camera
+          
           if (normal > 0) {
             const avgZ = faceCorners.reduce((sum, c) => sum + c.z, 0) / 4;
-            const brightness = Math.min(1, Math.max(0.4, 1 - avgZ / 400));
+            const brightness = Math.min(1, Math.max(0.5, 1 - avgZ / 400));
             drawCubeFace(faceCorners, face.color, brightness);
           }
         });
@@ -299,7 +304,6 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
       animationFrame = requestAnimationFrame(animate);
     };
 
-    // Start first move after a short delay
     setTimeout(startNewMove, 500);
     animate();
 
