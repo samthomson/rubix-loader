@@ -27,7 +27,7 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
     // Cube state
     const cubeSize = size * 0.6;
     const pieceSize = cubeSize / 3;
-    const gap = 0.5; // Minimal gap so pieces stay together as a cube
+    const gap = 1; // Small gap between pieces
 
     // Rotation angles for better cube view
     let rotX = -0.6;
@@ -128,8 +128,8 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
       }
       ctx.fill();
 
-      ctx.strokeStyle = `rgba(80, 80, 80, ${0.6 * brightness})`; // Darker borders for definition
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = `rgba(255, 255, 255, ${0.3 * brightness})`;
+      ctx.lineWidth = 1;
       ctx.stroke();
     };
 
@@ -144,7 +144,7 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
         currentMove.angle += currentMove.speed;
 
         if (currentMove.angle >= currentMove.targetAngle) {
-          // Snap pieces to new positions
+          // Snap pieces to new positions - ensure they stay on grid
           pieces.forEach(piece => {
             if (
               (currentMove!.axis === 'x' && piece.gridX === currentMove!.layer) ||
@@ -155,19 +155,32 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
               let gx = piece.gridX, gy = piece.gridY, gz = piece.gridZ;
 
               if (currentMove!.axis === 'x') {
-                const r = rotateX(gy, gz, currentMove!.targetAngle);
-                piece.gridY = Math.round(r.y);
-                piece.gridZ = Math.round(r.z);
+                // Rotate around X axis
+                const cos = Math.cos(currentMove!.targetAngle);
+                const sin = Math.sin(currentMove!.targetAngle);
+                const newY = gy * cos - gz * sin;
+                const newZ = gy * sin + gz * cos;
+                piece.gridY = Math.round(newY);
+                piece.gridZ = Math.round(newZ);
               } else if (currentMove!.axis === 'y') {
-                const r = rotateY(gx, gz, currentMove!.targetAngle);
-                piece.gridX = Math.round(r.x);
-                piece.gridZ = Math.round(r.z);
+                // Rotate around Y axis
+                const cos = Math.cos(currentMove!.targetAngle);
+                const sin = Math.sin(currentMove!.targetAngle);
+                const newX = gx * cos + gz * sin;
+                const newZ = -gx * sin + gz * cos;
+                piece.gridX = Math.round(newX);
+                piece.gridZ = Math.round(newZ);
               } else {
-                const r = rotateZ(gx, gy, currentMove!.targetAngle);
-                piece.gridX = Math.round(r.x);
-                piece.gridY = Math.round(r.y);
+                // Rotate around Z axis
+                const cos = Math.cos(currentMove!.targetAngle);
+                const sin = Math.sin(currentMove!.targetAngle);
+                const newX = gx * cos - gy * sin;
+                const newY = gx * sin + gy * cos;
+                piece.gridX = Math.round(newX);
+                piece.gridY = Math.round(newY);
               }
 
+              // Ensure pieces stay exactly on grid
               piece.x = piece.gridX;
               piece.y = piece.gridY;
               piece.z = piece.gridZ;
@@ -243,14 +256,14 @@ const RubixLoader = ({ className, size = 200 }: RubixLoaderProps) => {
           project(c.lx + x, c.ly + y, c.lz + z)
         );
 
-        // Face colors (subtle pinks with more opacity)
+        // Face colors (subtle pinks - transparent glass look)
         const faceColors = [
-          'rgba(255, 182, 193, 0.85)', // light pink
-          'rgba(255, 192, 203, 0.85)', // pink
-          'rgba(255, 218, 224, 0.85)', // pale pink
-          'rgba(255, 200, 221, 0.85)', // light pink
-          'rgba(255, 210, 210, 0.85)', // pale pink
-          'rgba(255, 228, 225, 0.85)', // misty rose
+          'rgba(255, 182, 193, 0.5)', // light pink
+          'rgba(255, 192, 203, 0.5)', // pink
+          'rgba(255, 218, 224, 0.5)', // pale pink
+          'rgba(255, 200, 221, 0.5)', // light pink
+          'rgba(255, 210, 210, 0.5)', // pale pink
+          'rgba(255, 228, 225, 0.5)', // misty rose
         ];
 
         // Calculate face normals for proper shading
