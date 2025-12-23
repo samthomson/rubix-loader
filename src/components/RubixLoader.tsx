@@ -50,14 +50,14 @@ const RubixLoader = ({ className, size = 120 }: RubixLoaderProps) => {
           const translateY = (y - 1) * (pieceSize + gap);
           const translateZ = (z - 1) * (pieceSize + gap);
 
-          // Assign colors based on position (pinky-purple shades)
+          // Assign colors based on position (subtle pinky tones)
           const colors = {
-            front: 'rgba(219, 112, 147, 0.4)', // pale violet red
-            back: 'rgba(186, 85, 211, 0.4)', // medium orchid
-            right: 'rgba(221, 160, 221, 0.4)', // plum
-            left: 'rgba(218, 112, 214, 0.4)', // orchid
-            top: 'rgba(238, 130, 238, 0.4)', // violet
-            bottom: 'rgba(216, 191, 216, 0.4)', // thistle
+            front: 'rgba(255, 182, 193, 0.3)', // light pink
+            back: 'rgba(255, 192, 203, 0.3)', // pink
+            right: 'rgba(255, 228, 225, 0.3)', // misty rose
+            left: 'rgba(255, 218, 224, 0.3)', // pale pink
+            top: 'rgba(255, 200, 221, 0.3)', // light pink
+            bottom: 'rgba(255, 210, 210, 0.3)', // very pale pink
           };
 
           pieces.push(
