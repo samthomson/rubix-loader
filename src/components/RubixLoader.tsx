@@ -42,7 +42,7 @@ const RubixLoader = ({ className, size = 400 }: RubixLoaderProps) => {
 
     let animationFrame: number;
 
-    const cubeSize = size * 0.7;
+    const cubeSize = size * 0.5; // Reduced from 0.7 to leave room for rotation
     const pieceSize = cubeSize / 3;
     const gap = 3;
 
@@ -60,12 +60,12 @@ const RubixLoader = ({ className, size = 400 }: RubixLoaderProps) => {
 
     // Initialize cubelets with their colors
     const cubelets: Cubelet[] = [];
-    
+
     for (let x = 0; x < 3; x++) {
       for (let y = 0; y < 3; y++) {
         for (let z = 0; z < 3; z++) {
           if (x === 1 && y === 1 && z === 1) continue; // Skip center
-          
+
           // Assign random colors to each face
           cubelets.push({
             gridX: x,
@@ -87,7 +87,7 @@ const RubixLoader = ({ className, size = 400 }: RubixLoaderProps) => {
     const startRotation = () => {
       const axes: Array<'x' | 'y' | 'z'> = ['x', 'y', 'z'];
       const layers: Array<0 | 1 | 2> = [0, 1, 2];
-      
+
       activeRotation = {
         axis: axes[Math.floor(Math.random() * 3)],
         layerIndex: layers[Math.floor(Math.random() * 3)],
@@ -100,15 +100,15 @@ const RubixLoader = ({ className, size = 400 }: RubixLoaderProps) => {
       // Rotate around X
       let y1 = y * Math.cos(rx) - z * Math.sin(rx);
       let z1 = y * Math.sin(rx) + z * Math.cos(rx);
-      
+
       // Rotate around Y
       let x2 = x * Math.cos(ry) + z1 * Math.sin(ry);
       let z2 = -x * Math.sin(ry) + z1 * Math.cos(ry);
-      
+
       // Rotate around Z
       let x3 = x2 * Math.cos(rz) - y1 * Math.sin(rz);
       let y3 = x2 * Math.sin(rz) + y1 * Math.cos(rz);
-      
+
       return { x: x3, y: y3, z: z2 };
     };
 
@@ -122,35 +122,35 @@ const RubixLoader = ({ className, size = 400 }: RubixLoaderProps) => {
 
     const drawQuad = (corners: Array<{x: number, y: number}>, colorIdx: number, alpha: number) => {
       const color = COLORS[colorIdx];
-      
+
       // Create gradient for glisten effect
       const centerX = corners.reduce((sum, c) => sum + c.x, 0) / 4;
       const centerY = corners.reduce((sum, c) => sum + c.y, 0) / 4;
       const maxDist = Math.max(
         ...corners.map(c => Math.sqrt((c.x - centerX) ** 2 + (c.y - centerY) ** 2))
       );
-      
+
       const gradient = ctx.createRadialGradient(
         centerX, centerY, 0,
         centerX, centerY, maxDist
       );
-      
+
       const baseColor = color.base.replace(/[\d.]+\)$/, `${alpha})`);
       const glowColor = color.glow.replace(/[\d.]+\)$/, `${alpha * 1.2})`);
-      
+
       gradient.addColorStop(0, glowColor);
       gradient.addColorStop(1, baseColor);
-      
+
       ctx.beginPath();
       ctx.moveTo(corners[0].x, corners[0].y);
       ctx.lineTo(corners[1].x, corners[1].y);
       ctx.lineTo(corners[2].x, corners[2].y);
       ctx.lineTo(corners[3].x, corners[3].y);
       ctx.closePath();
-      
+
       ctx.fillStyle = gradient;
       ctx.fill();
-      
+
       // Add shiny border
       ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.6})`;
       ctx.lineWidth = 2;
@@ -159,13 +159,13 @@ const RubixLoader = ({ className, size = 400 }: RubixLoaderProps) => {
 
     const animate = () => {
       ctx.clearRect(0, 0, size, size);
-      
+
       globalRotY += 0.005;
 
       // Update active rotation
       if (activeRotation) {
         activeRotation.currentAngle += 0.08;
-        
+
         if (activeRotation.currentAngle >= activeRotation.targetAngle) {
           // Complete the rotation - update grid positions
           const affectedCubelets = cubelets.filter(c => {
@@ -176,7 +176,7 @@ const RubixLoader = ({ className, size = 400 }: RubixLoaderProps) => {
 
           affectedCubelets.forEach(cubelet => {
             const { gridX, gridY, gridZ } = cubelet;
-            
+
             if (activeRotation!.axis === 'x') {
               // Rotate in YZ plane
               cubelet.gridY = 2 - gridZ;
@@ -200,7 +200,7 @@ const RubixLoader = ({ className, size = 400 }: RubixLoaderProps) => {
               cubelet.faceColors = [f, b, t, bo, l, r];
             }
           });
-          
+
           activeRotation = null;
           setTimeout(startRotation, 400);
         }
@@ -238,10 +238,10 @@ const RubixLoader = ({ className, size = 400 }: RubixLoaderProps) => {
 
         // Apply layer rotation
         let layerRotX = 0, layerRotY = 0, layerRotZ = 0;
-        
+
         if (activeRotation) {
           let isInLayer = false;
-          
+
           if (activeRotation.axis === 'x' && gridX === activeRotation.layerIndex) {
             isInLayer = true;
             layerRotX = activeRotation.currentAngle;
@@ -263,7 +263,7 @@ const RubixLoader = ({ className, size = 400 }: RubixLoaderProps) => {
         }
 
         // Apply global rotation
-        const rotatedCorners = corners3d.map(c => 
+        const rotatedCorners = corners3d.map(c =>
           rotatePoint(c.x, c.y, c.z, globalRotX, globalRotY, 0)
         );
 
@@ -282,18 +282,18 @@ const RubixLoader = ({ className, size = 400 }: RubixLoaderProps) => {
 
         faceIndices.forEach((indices, faceIdx) => {
           const faceCorners = indices.map(i => projected[i]);
-          
+
           // Backface culling
           const v1x = faceCorners[1].x - faceCorners[0].x;
           const v1y = faceCorners[1].y - faceCorners[0].y;
           const v2x = faceCorners[2].x - faceCorners[0].x;
           const v2y = faceCorners[2].y - faceCorners[0].y;
           const cross = v1x * v2y - v1y * v2x;
-          
+
           if (cross > 0) {
             const avgZ = faceCorners.reduce((sum, c) => sum + c.z, 0) / 4;
             const alpha = Math.max(0.6, Math.min(1, 1 - avgZ / 600));
-            
+
             faces.push({
               corners: faceCorners,
               colorIdx: faceColors[faceIdx],
