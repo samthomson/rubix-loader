@@ -6,14 +6,16 @@ interface RubixLoaderProps {
   size?: number;
 }
 
-// Define color palette with more vibrant pink/purple shades
+// Define color palette with light purple and silver/grey tones
 const COLORS = [
-  { base: 'rgba(255, 182, 255, 0.8)', glow: 'rgba(255, 182, 255, 0.3)' }, // bright pink
-  { base: 'rgba(230, 190, 255, 0.8)', glow: 'rgba(230, 190, 255, 0.3)' }, // light purple
-  { base: 'rgba(255, 200, 230, 0.8)', glow: 'rgba(255, 200, 230, 0.3)' }, // pink
-  { base: 'rgba(240, 200, 255, 0.8)', glow: 'rgba(240, 200, 255, 0.3)' }, // lavender
-  { base: 'rgba(255, 220, 255, 0.8)', glow: 'rgba(255, 220, 255, 0.3)' }, // light pink
-  { base: 'rgba(250, 210, 255, 0.8)', glow: 'rgba(250, 210, 255, 0.3)' }, // pale purple
+  { base: 'rgba(200, 190, 230, 0.8)', glow: 'rgba(200, 190, 230, 0.4)' }, // medium light purple
+  { base: 'rgba(220, 215, 240, 0.8)', glow: 'rgba(220, 215, 240, 0.4)' }, // very light purple
+  { base: 'rgba(190, 190, 200, 0.8)', glow: 'rgba(190, 190, 200, 0.4)' }, // silver grey
+  { base: 'rgba(210, 210, 220, 0.8)', glow: 'rgba(210, 210, 220, 0.4)' }, // light silver
+  { base: 'rgba(180, 175, 210, 0.8)', glow: 'rgba(180, 175, 210, 0.4)' }, // darker purple
+  { base: 'rgba(230, 225, 245, 0.8)', glow: 'rgba(230, 225, 245, 0.4)' }, // pale lavender
+  { base: 'rgba(170, 170, 185, 0.8)', glow: 'rgba(170, 170, 185, 0.4)' }, // darker grey
+  { base: 'rgba(205, 200, 225, 0.8)', glow: 'rgba(205, 200, 225, 0.4)' }, // light purple grey
 ];
 
 interface Cubelet {
