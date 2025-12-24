@@ -162,11 +162,11 @@ const RubixLoader = ({ className, size = 400 }: RubixLoaderProps) => {
     const animate = () => {
       ctx.clearRect(0, 0, size, size);
 
-      globalRotY += 0.005;
+      globalRotY += 0.0075; // Increased from 0.005 for 50% faster global rotation
 
       // Update active rotation
       if (activeRotation) {
-        activeRotation.currentAngle += 0.08;
+        activeRotation.currentAngle += 0.12; // Increased from 0.08 for 50% faster rotation
 
         if (activeRotation.currentAngle >= activeRotation.targetAngle) {
           // Complete the rotation - update grid positions
@@ -204,7 +204,7 @@ const RubixLoader = ({ className, size = 400 }: RubixLoaderProps) => {
           });
 
           activeRotation = null;
-          setTimeout(startRotation, 400);
+          setTimeout(startRotation, 267); // Reduced from 400ms for 50% faster transitions
         }
       }
 
