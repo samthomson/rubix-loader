@@ -2,6 +2,15 @@
 
 This project is a client-side web application built with React 18.x, TailwindCSS 3.x, Vite, and shadcn/ui.
 
+## Assistant style
+
+- Default to **concise** explanations and changes. Expand with depth only when the user asks for it.
+- **Never run `git commit` or create commits** unless the user explicitly instructs you to commit. This project’s policy: the assistant does not have permission to commit; leave changes uncommitted for the user to review and commit themselves.
+
+## Rubik loader
+
+- The 3×3×3 canvas animation lives in **`src/components/RubixLoader.tsx`**. Pages only import it (e.g. `src/pages/Index.tsx`).
+
 ## Technology Stack
 
 - **React 18.x**: Stable version of React with hooks, concurrent rendering, and improved performance
@@ -259,18 +268,15 @@ Run available tools in this priority order:
 2. **Building/Compilation** (Required): Verify the project builds successfully
 3. **Linting** (Recommended): Check code style and catch potential issues
 4. **Tests** (If Available): Run existing test suite
-5. **Git Commit** (Required): Create a commit with your changes when finished
 
 **Minimum Requirements:**
 - Code must type-check without errors
 - Code must build/compile successfully
 - Fix any critical linting errors that would break functionality
-- Create a git commit when your changes are complete
+- **Do not commit** (see Assistant style); the user commits when ready
 
 The validation ensures code quality and catches errors before deployment, regardless of the development environment.
 
 ### Using Git
 
-If git is available in your environment (through a `shell` tool, or other git-specific tools), you should utilize `git log` to understand project history. Use `git status` and `git diff` to check the status of your changes, and if you make a mistake use `git checkout` to restore files.
-
-When your changes are complete and validated, create a git commit with a descriptive message summarizing your changes.
+If git is available in your environment (through a `shell` tool, or other git-specific tools), you may use `git log`, `git status`, and `git diff` to understand history and inspect changes. Do **not** run `git commit`, `git push`, or similar unless the user explicitly asks. If you need to undo a mistaken commit locally, use `git reset` only when the user requests it.
