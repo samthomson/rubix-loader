@@ -202,7 +202,7 @@ function RubixLoader({ className, size = 400, paused = false, speed: speedProp =
 
     const cubeSize = size * 0.5;
     const pieceSize = cubeSize / 3;
-    const gap = Math.max(1, pieceSize * 0.06);
+    const gap = Math.max(0.35, pieceSize * 0.045);
 
     let globalRotX = -0.6;
     let globalRotY = 0.785;
@@ -262,12 +262,18 @@ function RubixLoader({ className, size = 400, paused = false, speed: speedProp =
 
     const drawQuad = (corners: Array<{ x: number; y: number }>, colorIdx: number, alpha: number) => {
       const color = paletteRef.current[colorIdx];
+      const tinyMode = pieceSize < 18;
       const centerX = corners.reduce((sum, c) => sum + c.x, 0) / 4;
       const centerY = corners.reduce((sum, c) => sum + c.y, 0) / 4;
       const maxDist = Math.max(...corners.map((c) => Math.sqrt((c.x - centerX) ** 2 + (c.y - centerY) ** 2)));
       const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, maxDist);
+      const tinyScale = Math.max(0, Math.min(1, (pieceSize - 10) / 40));
+      const glowMultiplier = 0.85 + tinyScale * 0.35;
+      const borderAlphaMultiplier = 0.28 + tinyScale * 0.32;
+      const borderWidth = Math.max(0.6, Math.min(2, pieceSize * 0.03));
+
       const baseColor = color.base.replace(/[\d.]+\)$/, `${alpha})`);
-      const glowColor = color.glow.replace(/[\d.]+\)$/, `${alpha * 1.2})`);
+      const glowColor = color.glow.replace(/[\d.]+\)$/, `${alpha * glowMultiplier})`);
       gradient.addColorStop(0, glowColor);
       gradient.addColorStop(1, baseColor);
       ctx.beginPath();
@@ -276,10 +282,10 @@ function RubixLoader({ className, size = 400, paused = false, speed: speedProp =
       ctx.lineTo(corners[2].x, corners[2].y);
       ctx.lineTo(corners[3].x, corners[3].y);
       ctx.closePath();
-      ctx.fillStyle = gradient;
+      ctx.fillStyle = tinyMode ? baseColor : gradient;
       ctx.fill();
-      ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.6})`;
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * (tinyMode ? borderAlphaMultiplier * 0.7 : borderAlphaMultiplier)})`;
+      ctx.lineWidth = tinyMode ? Math.max(0.45, borderWidth * 0.75) : borderWidth;
       ctx.stroke();
     };
 

@@ -18,7 +18,7 @@ const EXAMPLES = [
   { label: 'Large', size: 240, speed: 0.9, color: '#ef4444' },
 ] satisfies LoaderExample[];
 
-const SIZE_EXAMPLES = [60, 80, 100, 120, 140, 180, 220, 280] as const;
+const SIZE_EXAMPLES = [24, 32, 40, 52, 64, 80, 100, 140, 220, 280] as const;
 const CYCLING_COLORS = ['#7c3aed', '#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#ec4899'] as const;
 
 const Index = () => {
@@ -53,9 +53,9 @@ const Index = () => {
               <input
                 className="mt-1 w-full"
                 type="range"
-                min={60}
+                min={20}
                 max={800}
-                step={10}
+                step={5}
                 value={playgroundSize}
                 onChange={(event) => setPlaygroundSize(Number(event.target.value))}
               />
