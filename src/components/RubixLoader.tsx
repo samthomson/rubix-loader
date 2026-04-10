@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface RubixLoaderProps {
@@ -335,4 +335,4 @@ const RubixLoader = ({ className, size = 400 }: RubixLoaderProps) => {
   );
 };
 
-export default RubixLoader;
+export default memo(RubixLoader);
