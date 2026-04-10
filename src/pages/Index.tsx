@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import RubixLoader from '@/components/RubixLoader';
 
 interface LoaderExample {
@@ -19,12 +19,21 @@ const EXAMPLES = [
 ] satisfies LoaderExample[];
 
 const SIZE_EXAMPLES = [60, 80, 100, 120, 140, 180, 220, 280] as const;
+const CYCLING_COLORS = ['#7c3aed', '#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#ec4899'] as const;
 
 const Index = () => {
   const [playgroundSize, setPlaygroundSize] = useState(180);
   const [playgroundSpeed, setPlaygroundSpeed] = useState(1);
   const [playgroundPaused, setPlaygroundPaused] = useState(false);
   const [playgroundColor, setPlaygroundColor] = useState('#7c3aed');
+  const [cyclingColorIndex, setCyclingColorIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCyclingColorIndex((prev) => (prev + 1) % CYCLING_COLORS.length);
+    }, 1300);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="min-h-screen bg-white p-8">
@@ -96,6 +105,16 @@ const Index = () => {
                 placeholder="#7c3aed or rgb(124,58,237)"
               />
             </div>
+          </div>
+        </div>
+
+        <h2 className="mb-3 text-sm font-semibold text-neutral-800">Live Color Cycling (No Reset)</h2>
+        <div className="mb-10 rounded-xl border border-neutral-200 bg-neutral-50 p-5">
+          <div className="flex flex-col items-center gap-3">
+            <RubixLoader size={220} speed={1} color={CYCLING_COLORS[cyclingColorIndex]} />
+            <p className="text-xs text-neutral-600">
+              color {CYCLING_COLORS[cyclingColorIndex]} (changes every 1.3s)
+            </p>
           </div>
         </div>
 

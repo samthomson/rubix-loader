@@ -104,6 +104,35 @@ const buildPaletteFromColor = (input?: string) => {
   });
 };
 
+interface ParsedPaletteColor {
+  r: number;
+  g: number;
+  b: number;
+  baseA: number;
+  glowA: number;
+}
+
+const parseRgba = (value: string) => {
+  const m = /rgba\(\s*(\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\s*\)/.exec(value);
+  if (!m) return { r: 0, g: 0, b: 0, a: 0 };
+  return { r: Number(m[1]), g: Number(m[2]), b: Number(m[3]), a: Number(m[4]) };
+};
+
+const parsePalette = (palette: { base: string; glow: string }[]): ParsedPaletteColor[] =>
+  palette.map((entry) => {
+    const base = parseRgba(entry.base);
+    const glow = parseRgba(entry.glow);
+    return { r: base.r, g: base.g, b: base.b, baseA: base.a, glowA: glow.a };
+  });
+
+const buildPaletteFromParsed = (parsed: ParsedPaletteColor[]) =>
+  parsed.map((entry) => ({
+    base: `rgba(${entry.r}, ${entry.g}, ${entry.b}, ${entry.baseA})`,
+    glow: `rgba(${entry.r}, ${entry.g}, ${entry.b}, ${entry.glowA})`,
+  }));
+
+const lerp = (from: number, to: number, t: number) => from + (to - from) * t;
+
 interface Cubelet {
   // Current grid position
   gridX: number;
@@ -117,8 +146,24 @@ const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp =
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pausedRef = useRef(paused);
   const speedRef = useRef(speedProp);
+  const paletteRef = useRef(buildPaletteFromColor(color));
+  const parsedPaletteRef = useRef(parsePalette(paletteRef.current));
+  const paletteTransitionRef = useRef<{
+    from: ParsedPaletteColor[];
+    to: ParsedPaletteColor[];
+    progress: number;
+  } | null>(null);
   pausedRef.current = paused;
   speedRef.current = Math.max(0.05, speedProp);
+
+  useEffect(() => {
+    const nextPalette = buildPaletteFromColor(color);
+    paletteTransitionRef.current = {
+      from: parsedPaletteRef.current,
+      to: parsePalette(nextPalette),
+      progress: 0,
+    };
+  }, [color]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -126,7 +171,7 @@ const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp =
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const ACTIVE_COLORS = buildPaletteFromColor(color);
+    const ACTIVE_COLORS = paletteRef.current;
 
     const dpr = window.devicePixelRatio || 1;
     canvas.width = size * dpr;
@@ -216,7 +261,7 @@ const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp =
     };
 
     const drawQuad = (corners: Array<{x: number, y: number}>, colorIdx: number, alpha: number) => {
-      const color = ACTIVE_COLORS[colorIdx];
+      const color = paletteRef.current[colorIdx];
 
       // Create gradient for glisten effect
       const centerX = corners.reduce((sum, c) => sum + c.x, 0) / 4;
@@ -303,6 +348,29 @@ const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp =
             activeRotation = null;
             startRotationTimeout = setTimeout(startRotation, Math.max(16, 267 / sp)); // Reduced from 400ms for 50% faster transitions
           }
+        }
+      }
+
+      if (paletteTransitionRef.current) {
+        const transition = paletteTransitionRef.current;
+        transition.progress = Math.min(1, transition.progress + 0.035);
+
+        const blended = transition.from.map((fromColor, index) => {
+          const toColor = transition.to[index];
+          return {
+            r: Math.round(lerp(fromColor.r, toColor.r, transition.progress)),
+            g: Math.round(lerp(fromColor.g, toColor.g, transition.progress)),
+            b: Math.round(lerp(fromColor.b, toColor.b, transition.progress)),
+            baseA: lerp(fromColor.baseA, toColor.baseA, transition.progress),
+            glowA: lerp(fromColor.glowA, toColor.glowA, transition.progress),
+          };
+        });
+
+        parsedPaletteRef.current = blended;
+        paletteRef.current = buildPaletteFromParsed(blended);
+
+        if (transition.progress >= 1) {
+          paletteTransitionRef.current = null;
         }
       }
 
@@ -414,7 +482,7 @@ const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp =
         clearTimeout(startRotationTimeout);
       }
     };
-  }, [size, color]);
+  }, [size]);
 
   return (
     <div className={cn("flex items-center justify-center", className)}>
