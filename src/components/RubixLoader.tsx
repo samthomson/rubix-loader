@@ -6,6 +6,8 @@ interface RubixLoaderProps {
   size?: number;
   /** When true, global spin and layer twists stop; the last frame keeps drawing. */
   paused?: boolean;
+  /** Animation speed multiplier; 1 = default. */
+  speed?: number;
 }
 
 // Define color palette with light purple tones
@@ -29,10 +31,12 @@ interface Cubelet {
   faceColors: number[]; // indices into COLORS array
 }
 
-const RubixLoader = ({ className, size = 400, paused = false }: RubixLoaderProps) => {
+const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp = 1 }: RubixLoaderProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pausedRef = useRef(paused);
+  const speedRef = useRef(speedProp);
   pausedRef.current = paused;
+  speedRef.current = Math.max(0.05, speedProp);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -167,11 +171,12 @@ const RubixLoader = ({ className, size = 400, paused = false }: RubixLoaderProps
       ctx.clearRect(0, 0, size, size);
 
       if (!pausedRef.current) {
-        globalRotY += 0.0075; // Increased from 0.005 for 50% faster global rotation
+        const sp = speedRef.current;
+        globalRotY += 0.0075 * sp; // Increased from 0.005 for 50% faster global rotation
 
         // Update active rotation
         if (activeRotation) {
-          activeRotation.currentAngle += 0.12; // Increased from 0.08 for 50% faster rotation
+          activeRotation.currentAngle += 0.12 * sp; // Increased from 0.08 for 50% faster rotation
 
           if (activeRotation.currentAngle >= activeRotation.targetAngle) {
             // Complete the rotation - update grid positions
@@ -209,7 +214,7 @@ const RubixLoader = ({ className, size = 400, paused = false }: RubixLoaderProps
             });
 
             activeRotation = null;
-            setTimeout(startRotation, 267); // Reduced from 400ms for 50% faster transitions
+            setTimeout(startRotation, Math.max(16, 267 / sp)); // Reduced from 400ms for 50% faster transitions
           }
         }
       }
