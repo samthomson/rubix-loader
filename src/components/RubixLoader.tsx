@@ -8,6 +8,8 @@ interface RubixLoaderProps {
   paused?: boolean;
   /** Rate multiplier vs built-in timing (decimals OK). Scales spin, layer twist, and gap before next twist; clamped to ≥ 0.05. */
   speed?: number;
+  /** Base color used to derive all cube shades. Supports #rgb, #rrggbb, rgb(r,g,b). */
+  color?: string;
 }
 
 // Define color palette with light purple tones
@@ -22,16 +24,87 @@ const COLORS = [
   { base: 'rgba(215, 200, 250, 0.8)', glow: 'rgba(215, 200, 250, 0.4)' }, // light lavender
 ];
 
+const parseColor = (input?: string): { r: number; g: number; b: number } | null => {
+  if (!input) return null;
+  const c = input.trim();
+
+  const hex3 = /^#([0-9a-f]{3})$/i.exec(c);
+  if (hex3) {
+    const h = hex3[1];
+    return {
+      r: parseInt(h[0] + h[0], 16),
+      g: parseInt(h[1] + h[1], 16),
+      b: parseInt(h[2] + h[2], 16),
+    };
+  }
+
+  const hex6 = /^#([0-9a-f]{6})$/i.exec(c);
+  if (hex6) {
+    const h = hex6[1];
+    return {
+      r: parseInt(h.slice(0, 2), 16),
+      g: parseInt(h.slice(2, 4), 16),
+      b: parseInt(h.slice(4, 6), 16),
+    };
+  }
+
+  const rgb = /^rgb\(\s*([01]?\d?\d|2[0-4]\d|25[0-5])\s*,\s*([01]?\d?\d|2[0-4]\d|25[0-5])\s*,\s*([01]?\d?\d|2[0-4]\d|25[0-5])\s*\)$/i.exec(c);
+  if (rgb) {
+    return { r: Number(rgb[1]), g: Number(rgb[2]), b: Number(rgb[3]) };
+  }
+
+  return null;
+};
+
+const tint = (v: number, factor: number) =>
+  Math.max(0, Math.min(255, Math.round(v + (255 - v) * factor)));
+
+const shade = (v: number, factor: number) =>
+  Math.max(0, Math.min(255, Math.round(v * factor)));
+
+const buildPaletteFromColor = (input?: string) => {
+  const rgb = parseColor(input);
+  if (!rgb) return COLORS;
+
+  // Keep all custom colors in the same soft/pastel range as the original lavender look.
+  const base = {
+    r: tint(rgb.r, 0.55),
+    g: tint(rgb.g, 0.55),
+    b: tint(rgb.b, 0.55),
+  };
+
+  const factors = [
+    { t: 0.06, a: 0.8 },
+    { t: 0.18, a: 0.8 },
+    { t: 0.02, a: 0.8 },
+    { t: 0.12, a: 0.8 },
+    { s: 0.94, a: 0.8 },
+    { t: 0.24, a: 0.8 },
+    { t: 0.08, a: 0.8 },
+    { t: 0.14, a: 0.8 },
+  ] as const;
+
+  return factors.map((f) => {
+    const r = 't' in f ? tint(base.r, f.t) : shade(base.r, f.s);
+    const g = 't' in f ? tint(base.g, f.t) : shade(base.g, f.s);
+    const b = 't' in f ? tint(base.b, f.t) : shade(base.b, f.s);
+    return {
+      base: `rgba(${r}, ${g}, ${b}, ${f.a})`,
+      glow: `rgba(${r}, ${g}, ${b}, ${f.a * 0.5})`,
+    };
+  });
+};
+
 interface Cubelet {
   // Current grid position
   gridX: number;
   gridY: number;
   gridZ: number;
   // Colors for each face: [front, back, right, left, top, bottom]
-  faceColors: number[]; // indices into COLORS array
+  faceColors: number[]; // indices into active color array
 }
 
-const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp = 1 }: RubixLoaderProps) => {
+const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp = 1, color }: RubixLoaderProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pausedRef = useRef(paused);
   const speedRef = useRef(speedProp);
@@ -44,6 +117,7 @@ const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp =
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    const ACTIVE_COLORS = buildPaletteFromColor(color);
 
     const dpr = window.devicePixelRatio || 1;
     canvas.width = size * dpr;
@@ -82,12 +156,12 @@ const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp =
             gridY: y,
             gridZ: z,
             faceColors: [
-              Math.floor(Math.random() * COLORS.length),
-              Math.floor(Math.random() * COLORS.length),
-              Math.floor(Math.random() * COLORS.length),
-              Math.floor(Math.random() * COLORS.length),
-              Math.floor(Math.random() * COLORS.length),
-              Math.floor(Math.random() * COLORS.length),
+              Math.floor(Math.random() * ACTIVE_COLORS.length),
+              Math.floor(Math.random() * ACTIVE_COLORS.length),
+              Math.floor(Math.random() * ACTIVE_COLORS.length),
+              Math.floor(Math.random() * ACTIVE_COLORS.length),
+              Math.floor(Math.random() * ACTIVE_COLORS.length),
+              Math.floor(Math.random() * ACTIVE_COLORS.length),
             ],
           });
         }
@@ -131,7 +205,7 @@ const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp =
     };
 
     const drawQuad = (corners: Array<{x: number, y: number}>, colorIdx: number, alpha: number) => {
-      const color = COLORS[colorIdx];
+      const color = ACTIVE_COLORS[colorIdx];
 
       // Create gradient for glisten effect
       const centerX = corners.reduce((sum, c) => sum + c.x, 0) / 4;
@@ -334,7 +408,7 @@ const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp =
         cancelAnimationFrame(animationFrame);
       }
     };
-  }, [size]);
+  }, [size, color]);
 
   return (
     <div className={cn("flex items-center justify-center", className)}>
