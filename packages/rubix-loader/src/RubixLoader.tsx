@@ -1,5 +1,13 @@
 import { memo, useEffect, useRef } from 'react';
 
+export enum RubixLoaderColor {
+  RelayKit = '#d2bef0',
+  Strfry = '#facc15',
+  NostrRs = '#ef4444',
+  Blossom = '#ec4899',
+  Nsite = '#111111',
+}
+
 export interface RubixLoaderProps {
   className?: string;
   size?: number;

@@ -11,7 +11,7 @@ npm i @samthomson/rubix-loader
 ## Usage
 
 ```tsx
-import { RubixLoader } from '@samthomson/rubix-loader';
+import { RubixLoader, RubixLoaderColor } from '@samthomson/rubix-loader';
 
 export function Example() {
   return (
@@ -19,7 +19,12 @@ export function Example() {
       size={220}
       speed={1}
       paused={false}
-      colors={['#7c3aed', '#06b6d4', '#22c55e']}
+      colors={[
+        RubixLoaderColor.RelayKit,
+        RubixLoaderColor.Strfry,
+        RubixLoaderColor.NostrRs,
+        RubixLoaderColor.Blossom,
+      ]}
     />
   );
 }
@@ -32,3 +37,11 @@ export function Example() {
 - `paused?: boolean` - pause motion without unmounting
 - `colors?: string[]` - one color for static look, multiple for cycling
 - `className?: string` - wrapper class name
+
+## Exported Color Enum
+
+- `RubixLoaderColor.RelayKit` - default lavender tone
+- `RubixLoaderColor.Strfry` - yellow
+- `RubixLoaderColor.NostrRs` - red
+- `RubixLoaderColor.Blossom` - pink
+- `RubixLoaderColor.Nsite` - black
