@@ -6,7 +6,7 @@ interface RubixLoaderProps {
   size?: number;
   /** When true, global spin and layer twists stop; the last frame keeps drawing. */
   paused?: boolean;
-  /** Animation speed multiplier; 1 = default. */
+  /** Rate multiplier vs built-in timing (decimals OK). Scales spin, layer twist, and gap before next twist; clamped to ≥ 0.05. */
   speed?: number;
 }
 
