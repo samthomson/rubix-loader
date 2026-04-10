@@ -8,8 +8,8 @@ interface RubixLoaderProps {
   paused?: boolean;
   /** Rate multiplier vs built-in timing (decimals OK). Scales spin, layer twist, and gap before next twist; clamped to ≥ 0.05. */
   speed?: number;
-  /** Base color used to derive all cube shades. Supports #rgb, #rrggbb, rgb(r,g,b). */
-  color?: string;
+  /** Base colors used to derive cube shades. Supports #rgb, #rrggbb, rgb(r,g,b). */
+  colors?: readonly string[];
 }
 
 // Define color palette with light purple tones
@@ -132,6 +132,7 @@ const buildPaletteFromParsed = (parsed: ParsedPaletteColor[]) =>
   }));
 
 const lerp = (from: number, to: number, t: number) => from + (to - from) * t;
+const COLOR_CYCLE_MS = 1300;
 
 interface Cubelet {
   // Current grid position
@@ -142,28 +143,53 @@ interface Cubelet {
   faceColors: number[]; // indices into active color array
 }
 
-const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp = 1, color }: RubixLoaderProps) => {
+const RubixLoader = ({
+  className,
+  size = 400,
+  paused = false,
+  speed: speedProp = 1,
+  colors,
+}: RubixLoaderProps) => {
+  const initialColor = colors && colors.length > 0 ? colors[0] : undefined;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pausedRef = useRef(paused);
   const speedRef = useRef(speedProp);
-  const paletteRef = useRef(buildPaletteFromColor(color));
+  const paletteRef = useRef(buildPaletteFromColor(initialColor));
   const parsedPaletteRef = useRef(parsePalette(paletteRef.current));
   const paletteTransitionRef = useRef<{
     from: ParsedPaletteColor[];
     to: ParsedPaletteColor[];
     progress: number;
   } | null>(null);
+  const cycleIndexRef = useRef(0);
   pausedRef.current = paused;
   speedRef.current = Math.max(0.05, speedProp);
 
   useEffect(() => {
-    const nextPalette = buildPaletteFromColor(color);
-    paletteTransitionRef.current = {
-      from: parsedPaletteRef.current,
-      to: parsePalette(nextPalette),
-      progress: 0,
+    const setNextColor = (nextColor: string) => {
+      const nextPalette = buildPaletteFromColor(nextColor);
+      paletteTransitionRef.current = {
+        from: parsedPaletteRef.current,
+        to: parsePalette(nextPalette),
+        progress: 0,
+      };
     };
-  }, [color]);
+
+    const validColors = (colors ?? []).filter((value) => value.trim().length > 0);
+    if (validColors.length > 0) {
+      cycleIndexRef.current = 0;
+      setNextColor(validColors[0]);
+
+      if (validColors.length === 1) return;
+
+      const interval = setInterval(() => {
+        cycleIndexRef.current = (cycleIndexRef.current + 1) % validColors.length;
+        setNextColor(validColors[cycleIndexRef.current]);
+      }, COLOR_CYCLE_MS);
+
+      return () => clearInterval(interval);
+    }
+  }, [colors]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

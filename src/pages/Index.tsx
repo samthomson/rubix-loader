@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import RubixLoader from '@/components/RubixLoader';
 
 interface LoaderExample {
@@ -26,14 +26,6 @@ const Index = () => {
   const [playgroundSpeed, setPlaygroundSpeed] = useState(1);
   const [playgroundPaused, setPlaygroundPaused] = useState(false);
   const [playgroundColor, setPlaygroundColor] = useState('#7c3aed');
-  const [cyclingColorIndex, setCyclingColorIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCyclingColorIndex((prev) => (prev + 1) % CYCLING_COLORS.length);
-    }, 1300);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="min-h-screen bg-white p-8">
@@ -49,7 +41,7 @@ const Index = () => {
               size={playgroundSize}
               speed={playgroundSpeed}
               paused={playgroundPaused}
-              color={playgroundColor}
+              colors={[playgroundColor]}
             />
           </div>
 
@@ -111,9 +103,9 @@ const Index = () => {
         <h2 className="mb-3 text-sm font-semibold text-neutral-800">Live Color Cycling (No Reset)</h2>
         <div className="mb-10 rounded-xl border border-neutral-200 bg-neutral-50 p-5">
           <div className="flex flex-col items-center gap-3">
-            <RubixLoader size={220} speed={1} color={CYCLING_COLORS[cyclingColorIndex]} />
+            <RubixLoader size={220} speed={1} colors={CYCLING_COLORS} />
             <p className="text-xs text-neutral-600">
-              color {CYCLING_COLORS[cyclingColorIndex]} (changes every 1.3s)
+              internal colors cycle every 1.3s ({CYCLING_COLORS.join(' -> ')})
             </p>
           </div>
         </div>
@@ -122,7 +114,7 @@ const Index = () => {
         <div className="mb-10 flex flex-wrap items-end justify-center gap-6 rounded-xl border border-neutral-200 bg-neutral-50 p-5">
           {SIZE_EXAMPLES.map((size) => (
             <div key={size} className="flex flex-col items-center gap-2">
-              <RubixLoader size={size} speed={1} color="#6366f1" />
+              <RubixLoader size={size} speed={1} colors={['#6366f1']} />
               <span className="text-xs text-neutral-600">size {size}</span>
             </div>
           ))}
@@ -138,7 +130,7 @@ const Index = () => {
                 size={example.size}
                 speed={example.speed}
                 paused={example.paused}
-                color={example.color}
+                colors={example.color ? [example.color] : undefined}
               />
               <div className="text-center">
                 <p className="text-sm font-medium text-neutral-800">{example.label}</p>
