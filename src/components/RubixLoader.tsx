@@ -24,6 +24,15 @@ const COLORS = [
   { base: 'rgba(215, 200, 250, 0.8)', glow: 'rgba(215, 200, 250, 0.4)' }, // light lavender
 ];
 
+const FACE_INDICES = [
+  [4, 5, 6, 7], // front
+  [0, 3, 2, 1], // back
+  [1, 2, 6, 5], // right
+  [0, 4, 7, 3], // left
+  [3, 7, 6, 2], // top
+  [0, 1, 5, 4], // bottom
+] as const;
+
 const parseColor = (input?: string): { r: number; g: number; b: number } | null => {
   if (!input) return null;
   const c = input.trim();
@@ -125,6 +134,7 @@ const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp =
     ctx.scale(dpr, dpr);
 
     let animationFrame: number;
+    let startRotationTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const cubeSize = size * 0.5; // Reduced from 0.7 to leave room for rotation
     const pieceSize = cubeSize / 3;
@@ -291,7 +301,7 @@ const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp =
             });
 
             activeRotation = null;
-            setTimeout(startRotation, Math.max(16, 267 / sp)); // Reduced from 400ms for 50% faster transitions
+            startRotationTimeout = setTimeout(startRotation, Math.max(16, 267 / sp)); // Reduced from 400ms for 50% faster transitions
           }
         }
       }
@@ -360,17 +370,7 @@ const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp =
         // Project to 2D
         const projected = rotatedCorners.map(c => project(c.x, c.y, c.z));
 
-        // Define faces with their color indices
-        const faceIndices = [
-          [4, 5, 6, 7], // front
-          [0, 3, 2, 1], // back
-          [1, 2, 6, 5], // right
-          [0, 4, 7, 3], // left
-          [3, 7, 6, 2], // top
-          [0, 1, 5, 4], // bottom
-        ];
-
-        faceIndices.forEach((indices, faceIdx) => {
+        FACE_INDICES.forEach((indices, faceIdx) => {
           const faceCorners = indices.map(i => projected[i]);
 
           // Backface culling
@@ -403,12 +403,15 @@ const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp =
       animationFrame = requestAnimationFrame(animate);
     };
 
-    setTimeout(startRotation, 500);
+    startRotationTimeout = setTimeout(startRotation, 500);
     animate();
 
     return () => {
       if (animationFrame) {
         cancelAnimationFrame(animationFrame);
+      }
+      if (startRotationTimeout) {
+        clearTimeout(startRotationTimeout);
       }
     };
   }, [size, color]);
