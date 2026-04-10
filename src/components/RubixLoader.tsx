@@ -4,6 +4,8 @@ import { cn } from '@/lib/utils';
 interface RubixLoaderProps {
   className?: string;
   size?: number;
+  /** When true, global spin and layer twists stop; the last frame keeps drawing. */
+  paused?: boolean;
 }
 
 // Define color palette with light purple tones
@@ -27,8 +29,10 @@ interface Cubelet {
   faceColors: number[]; // indices into COLORS array
 }
 
-const RubixLoader = ({ className, size = 400 }: RubixLoaderProps) => {
+const RubixLoader = ({ className, size = 400, paused = false }: RubixLoaderProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -162,49 +166,51 @@ const RubixLoader = ({ className, size = 400 }: RubixLoaderProps) => {
     const animate = () => {
       ctx.clearRect(0, 0, size, size);
 
-      globalRotY += 0.0075; // Increased from 0.005 for 50% faster global rotation
+      if (!pausedRef.current) {
+        globalRotY += 0.0075; // Increased from 0.005 for 50% faster global rotation
 
-      // Update active rotation
-      if (activeRotation) {
-        activeRotation.currentAngle += 0.12; // Increased from 0.08 for 50% faster rotation
+        // Update active rotation
+        if (activeRotation) {
+          activeRotation.currentAngle += 0.12; // Increased from 0.08 for 50% faster rotation
 
-        if (activeRotation.currentAngle >= activeRotation.targetAngle) {
-          // Complete the rotation - update grid positions
-          const affectedCubelets = cubelets.filter(c => {
-            if (activeRotation!.axis === 'x') return c.gridX === activeRotation!.layerIndex;
-            if (activeRotation!.axis === 'y') return c.gridY === activeRotation!.layerIndex;
-            return c.gridZ === activeRotation!.layerIndex;
-          });
+          if (activeRotation.currentAngle >= activeRotation.targetAngle) {
+            // Complete the rotation - update grid positions
+            const affectedCubelets = cubelets.filter(c => {
+              if (activeRotation!.axis === 'x') return c.gridX === activeRotation!.layerIndex;
+              if (activeRotation!.axis === 'y') return c.gridY === activeRotation!.layerIndex;
+              return c.gridZ === activeRotation!.layerIndex;
+            });
 
-          affectedCubelets.forEach(cubelet => {
-            const { gridX, gridY, gridZ } = cubelet;
+            affectedCubelets.forEach(cubelet => {
+              const { gridX, gridY, gridZ } = cubelet;
 
-            if (activeRotation!.axis === 'x') {
-              // Rotate in YZ plane
-              cubelet.gridY = 2 - gridZ;
-              cubelet.gridZ = gridY;
-              // Rotate face colors: front->top->back->bottom->front, left/right swap
-              const [f, b, r, l, t, bo] = cubelet.faceColors;
-              cubelet.faceColors = [t, bo, l, r, b, f];
-            } else if (activeRotation!.axis === 'y') {
-              // Rotate in XZ plane
-              cubelet.gridX = gridZ;
-              cubelet.gridZ = 2 - gridX;
-              // Rotate face colors: front->right->back->left->front, top/bottom stay
-              const [f, b, r, l, t, bo] = cubelet.faceColors;
-              cubelet.faceColors = [l, r, f, b, t, bo];
-            } else {
-              // Rotate in XY plane
-              cubelet.gridX = 2 - gridY;
-              cubelet.gridY = gridX;
-              // Rotate face colors: top->right->bottom->left->top, front/back stay
-              const [f, b, r, l, t, bo] = cubelet.faceColors;
-              cubelet.faceColors = [f, b, t, bo, l, r];
-            }
-          });
+              if (activeRotation!.axis === 'x') {
+                // Rotate in YZ plane
+                cubelet.gridY = 2 - gridZ;
+                cubelet.gridZ = gridY;
+                // Rotate face colors: front->top->back->bottom->front, left/right swap
+                const [f, b, r, l, t, bo] = cubelet.faceColors;
+                cubelet.faceColors = [t, bo, l, r, b, f];
+              } else if (activeRotation!.axis === 'y') {
+                // Rotate in XZ plane
+                cubelet.gridX = gridZ;
+                cubelet.gridZ = 2 - gridX;
+                // Rotate face colors: front->right->back->left->front, top/bottom stay
+                const [f, b, r, l, t, bo] = cubelet.faceColors;
+                cubelet.faceColors = [l, r, f, b, t, bo];
+              } else {
+                // Rotate in XY plane
+                cubelet.gridX = 2 - gridY;
+                cubelet.gridY = gridX;
+                // Rotate face colors: top->right->bottom->left->top, front/back stay
+                const [f, b, r, l, t, bo] = cubelet.faceColors;
+                cubelet.faceColors = [f, b, t, bo, l, r];
+              }
+            });
 
-          activeRotation = null;
-          setTimeout(startRotation, 267); // Reduced from 400ms for 50% faster transitions
+            activeRotation = null;
+            setTimeout(startRotation, 267); // Reduced from 400ms for 50% faster transitions
+          }
         }
       }
 
