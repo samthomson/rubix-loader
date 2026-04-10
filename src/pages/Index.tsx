@@ -54,7 +54,7 @@ const Index = () => {
                 className="mt-1 w-full"
                 type="range"
                 min={60}
-                max={320}
+                max={800}
                 step={10}
                 value={playgroundSize}
                 onChange={(event) => setPlaygroundSize(Number(event.target.value))}

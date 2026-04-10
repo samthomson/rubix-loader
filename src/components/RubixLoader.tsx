@@ -209,7 +209,7 @@ const RubixLoader = ({
 
     const cubeSize = size * 0.5; // Reduced from 0.7 to leave room for rotation
     const pieceSize = cubeSize / 3;
-    const gap = 5; // Increased gap for better separation
+    const gap = Math.max(1, pieceSize * 0.06);
 
     // Global rotation
     let globalRotX = -0.6;
