@@ -133,6 +133,7 @@ const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp =
     // Global rotation
     let globalRotX = -0.6;
     let globalRotY = 0.785;
+    let globalRotZ = 0;
 
     // Animation state
     let activeRotation: {
@@ -247,6 +248,8 @@ const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp =
       if (!pausedRef.current) {
         const sp = speedRef.current;
         globalRotY += 0.0075 * sp; // Increased from 0.005 for 50% faster global rotation
+        globalRotX = -0.6 + Math.sin(globalRotY * 0.35) * 0.22;
+        globalRotZ += 0.0022 * sp;
 
         // Update active rotation
         if (activeRotation) {
@@ -351,7 +354,7 @@ const RubixLoader = ({ className, size = 400, paused = false, speed: speedProp =
 
         // Apply global rotation
         const rotatedCorners = corners3d.map(c =>
-          rotatePoint(c.x, c.y, c.z, globalRotX, globalRotY, 0)
+          rotatePoint(c.x, c.y, c.z, globalRotX, globalRotY, globalRotZ)
         );
 
         // Project to 2D
