@@ -24,8 +24,9 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@samthomson/rubix-loader": ["./packages/rubix-loader/src/index.ts"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "packages/rubix-loader/src"]
 }

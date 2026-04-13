@@ -14,6 +14,10 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@samthomson/rubix-loader": path.resolve(
+        __dirname,
+        "./packages/rubix-loader/src/index.ts",
+      ),
     },
   },
 }));

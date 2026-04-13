@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import RubixLoader from '@/components/RubixLoader';
+import { RubixLoader } from '@samthomson/rubix-loader';
 import { cn } from '@/lib/utils';
 
 interface LoaderExample {

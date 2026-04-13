@@ -74,14 +74,20 @@ const parseColor = (input?: string): { r: number; g: number; b: number } | null 
 const tint = (v: number, factor: number) => Math.max(0, Math.min(255, Math.round(v + (255 - v) * factor)));
 const shade = (v: number, factor: number) => Math.max(0, Math.min(255, Math.round(v * factor)));
 
+/**
+ * Mix custom color toward white before variants.
+ * Higher = softer body; paired with stronger radial glow in drawQuad.
+ */
+const CUSTOM_COLOR_SOFTEN = 0.33;
+
 const buildPaletteFromColor = (input?: string) => {
   const rgb = parseColor(input);
   if (!rgb) return COLORS;
 
   const base = {
-    r: tint(rgb.r, 0.55),
-    g: tint(rgb.g, 0.55),
-    b: tint(rgb.b, 0.55),
+    r: tint(rgb.r, CUSTOM_COLOR_SOFTEN),
+    g: tint(rgb.g, CUSTOM_COLOR_SOFTEN),
+    b: tint(rgb.b, CUSTOM_COLOR_SOFTEN),
   };
 
   const factors = [
@@ -99,9 +105,12 @@ const buildPaletteFromColor = (input?: string) => {
     const r = 't' in f ? tint(base.r, f.t) : shade(base.r, f.s);
     const g = 't' in f ? tint(base.g, f.t) : shade(base.g, f.s);
     const b = 't' in f ? tint(base.b, f.t) : shade(base.b, f.s);
+    const gr = tint(r, 0.11);
+    const gg = tint(g, 0.11);
+    const gb = tint(b, 0.11);
     return {
       base: `rgba(${r}, ${g}, ${b}, ${f.a})`,
-      glow: `rgba(${r}, ${g}, ${b}, ${f.a * 0.5})`,
+      glow: `rgba(${gr}, ${gg}, ${gb}, ${f.a * 0.64})`,
     };
   });
 };
@@ -266,15 +275,23 @@ function RubixLoader({ className, size = 400, paused = false, speed: speedProp =
       const centerX = corners.reduce((sum, c) => sum + c.x, 0) / 4;
       const centerY = corners.reduce((sum, c) => sum + c.y, 0) / 4;
       const maxDist = Math.max(...corners.map((c) => Math.sqrt((c.x - centerX) ** 2 + (c.y - centerY) ** 2)));
-      const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, maxDist);
       const tinyScale = Math.max(0, Math.min(1, (pieceSize - 10) / 40));
-      const glowMultiplier = 0.85 + tinyScale * 0.35;
-      const borderAlphaMultiplier = 0.28 + tinyScale * 0.32;
+      const borderAlphaMultiplier = 0.22 + tinyScale * 0.26;
       const borderWidth = Math.max(0.6, Math.min(2, pieceSize * 0.03));
 
-      const baseColor = color.base.replace(/[\d.]+\)$/, `${alpha})`);
-      const glowColor = color.glow.replace(/[\d.]+\)$/, `${alpha * glowMultiplier})`);
-      gradient.addColorStop(0, glowColor);
+      const replaceAlpha = (rgba: string, a: number) => rgba.replace(/[\d.]+\)$/, `${a})`);
+
+      const baseColor = replaceAlpha(color.base, alpha);
+      /** Directional sheen (approx. top-left key light) — avoids a radial “bullseye” on every face. */
+      const span = maxDist * 1.15;
+      const lx = centerX - span * 0.55;
+      const ly = centerY - span * 0.55;
+      const dx = centerX + span * 0.5;
+      const dy = centerY + span * 0.45;
+      const gradient = ctx.createLinearGradient(lx, ly, dx, dy);
+      const sheenA = alpha * (0.88 + tinyScale * 0.1);
+      gradient.addColorStop(0, replaceAlpha(color.glow, sheenA));
+      gradient.addColorStop(0.55, replaceAlpha(color.glow, alpha * (0.52 + tinyScale * 0.08)));
       gradient.addColorStop(1, baseColor);
       ctx.beginPath();
       ctx.moveTo(corners[0].x, corners[0].y);
@@ -413,7 +430,7 @@ function RubixLoader({ className, size = 400, paused = false, speed: speedProp =
           const cross = v1x * v2y - v1y * v2x;
           if (cross > 0) {
             const avgZ = faceCorners.reduce((sum, c) => sum + c.z, 0) / 4;
-            const alpha = Math.max(0.6, Math.min(1, 1 - avgZ / 600));
+            const alpha = Math.max(0.62, Math.min(1, 1 - avgZ / 640));
             faces.push({ corners: faceCorners, colorIdx: faceColors[faceIdx], alpha, avgZ });
           }
         });
