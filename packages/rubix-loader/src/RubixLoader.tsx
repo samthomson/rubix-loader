@@ -1,12 +1,15 @@
 import { memo, useEffect, useRef } from 'react';
 
-export enum RubixLoaderColor {
-  RelayKit = '#d2bef0',
-  Strfry = '#facc15',
-  NostrRs = '#ef4444',
-  Blossom = '#ec4899',
-  Nsite = '#111111',
-}
+/** Preset hex values for cycling / branding (same pipeline as custom `colors`). */
+export const RubixLoaderColor = {
+  RelayKit: '#A78BFA',
+  Strfry: '#FBBF24',
+  NostrRs: '#F87171',
+  Blossom: '#E879F9',
+  Npanel: '#52525B',
+} as const;
+
+export type RubixLoaderPresetHex = (typeof RubixLoaderColor)[keyof typeof RubixLoaderColor];
 
 export interface RubixLoaderProps {
   className?: string;

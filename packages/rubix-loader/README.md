@@ -24,6 +24,7 @@ export function Example() {
         RubixLoaderColor.Strfry,
         RubixLoaderColor.NostrRs,
         RubixLoaderColor.Blossom,
+        RubixLoaderColor.Npanel,
       ]}
     />
   );
@@ -38,10 +39,25 @@ export function Example() {
 - `colors?: string[]` - one color for static look, multiple for cycling
 - `className?: string` - wrapper class name
 
-## Exported Color Enum
+## Preset colors (`RubixLoaderColor`)
 
-- `RubixLoaderColor.RelayKit` - default lavender tone
-- `RubixLoaderColor.Strfry` - yellow
-- `RubixLoaderColor.NostrRs` - red
-- `RubixLoaderColor.Blossom` - pink
-- `RubixLoaderColor.Nsite` - black
+Plain object (`as const`), not a TypeScript `enum`, so named exports stay obvious in bundled output.
+
+| Token       | Hex       | Notes                          |
+|------------|-----------|--------------------------------|
+| `RelayKit` | `#A78BFA` | Violet accent                  |
+| `Strfry`   | `#FBBF24` | Amber / warm yellow            |
+| `NostrRs`  | `#F87171` | Coral-red                      |
+| `Blossom`  | `#E879F9` | Fuchsia-pink                   |
+| `Npanel`   | `#52525B` | Zinc neutral (not pure black)  |
+
+### Vite oddities (stale exports / missing named imports)
+
+Restart the dev server or delete `node_modules/.vite` after upgrading the package — Vite’s dep pre-bundle cache is often the culprit.
+
+If it still happens, you can opt out of pre-bundling this package:
+
+```ts
+// vite.config.ts
+optimizeDeps: { exclude: ['@samthomson/rubix-loader'] },
+```
