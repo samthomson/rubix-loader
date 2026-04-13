@@ -9,7 +9,7 @@ This project is a client-side web application built with React 18.x, TailwindCSS
 
 ## Rubik loader
 
-- The 3×3×3 canvas animation lives in **`src/components/RubixLoader.tsx`**. Pages only import it (e.g. `src/pages/Index.tsx`).
+- The 3×3×3 canvas animation lives in **`packages/rubix-loader`** (`@samthomson/rubix-loader`). The demo imports it from that package (e.g. `src/pages/Index.tsx`); do not add a second copy under `src/components/`.
 
 ## Technology Stack
 
