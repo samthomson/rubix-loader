@@ -274,7 +274,7 @@ const RubixLoader = ({
       // Rotate around Z
       const x3 = x2 * Math.cos(rz) - y1 * Math.sin(rz);
       const y3 = x2 * Math.sin(rz) + y1 * Math.cos(rz);
-      
+
       return { x: x3, y: y3, z: z2 };
     };
 
