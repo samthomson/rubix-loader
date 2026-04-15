@@ -1,6 +1,6 @@
 {
   "name": "@samthomson/rubix-loader",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Animated 3D Rubix cube loader for React.",
   "type": "module",
   "main": "./dist/index.cjs",
