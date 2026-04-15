@@ -25,6 +25,7 @@ export function Example() {
         RubixLoaderColor.NostrRs,
         RubixLoaderColor.Blossom,
         RubixLoaderColor.Npanel,
+        RubixLoaderColor.Chapar,
       ]}
     />
   );
@@ -50,6 +51,7 @@ Plain object (`as const`), not a TypeScript `enum`, so named exports stay obviou
 | `NostrRs`  | `#F87171` | Coral-red                      |
 | `Blossom`  | `#E879F9` | Fuchsia-pink                   |
 | `Npanel`   | `#52525B` | Zinc neutral (not pure black)  |
+| `Chapar`   | `#192B39` | Deep blue-gray                 |
 
 ### Vite oddities (stale exports / missing named imports)
 

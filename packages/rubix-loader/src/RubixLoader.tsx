@@ -7,6 +7,7 @@ export const RubixLoaderColor = {
   NostrRs: '#F87171',
   Blossom: '#E879F9',
   Npanel: '#52525B',
+  Chapar: '#192B39',
 } as const;
 
 export type RubixLoaderPresetHex = (typeof RubixLoaderColor)[keyof typeof RubixLoaderColor];
