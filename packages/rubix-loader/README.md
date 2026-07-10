@@ -50,7 +50,7 @@ Plain object (`as const`), not a TypeScript `enum`, so named exports stay obviou
 | `Strfry`   | `#FBBF24` | Amber / warm yellow            |
 | `NostrRs`  | `#F87171` | Coral-red                      |
 | `Blossom`  | `#E879F9` | Fuchsia-pink                   |
-| `Npanel`   | `#52525B` | Zinc neutral (not pure black)  |
+| `Npanel`   | `#33D399` | Emerald (nsite / nPanel accent)|
 | `Chapar`   | `#192B39` | Deep blue-gray                 |
 
 ### Vite oddities (stale exports / missing named imports)
